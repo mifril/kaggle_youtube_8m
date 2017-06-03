@@ -131,7 +131,7 @@ def search_alphas(models, wdir_ids, n_val=20000):
 
 def predict_itr(out_file, models, alphas, n_itr=500):
     batch_count = 0
-    with open(out_file_location, "w+") as out_file:
+    with open(out_file, "w+") as out_file:
         out_file.write("VideoId,LabelConfidencePairs\n")
         for d in npz_iterator('test'):
             if batch_count % n_itr == 0:

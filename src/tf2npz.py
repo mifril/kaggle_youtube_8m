@@ -9,15 +9,11 @@ def tf2npz(tf_path, export_folder='C:\\data\\test'):
     labels = []
     mean_rgb = []
     mean_audio = []
-    # print (tf_path[0])
     tf_basename = os.path.basename(tf_path)
     npz_basename = tf_basename[:-len('.tfrecord')] + '.npz'
     isTrain = '/test' not in tf_path
 
-
-    # print ('here 0')
     for example in tf.python_io.tf_record_iterator(tf_path):      
-        # print ('here')
         tf_example = tf.train.Example.FromString(example).features
         vid_ids.append(tf_example.feature['video_id'].bytes_list.value[0].decode(encoding='UTF-8'))
         if isTrain:
