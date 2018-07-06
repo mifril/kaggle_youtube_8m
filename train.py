@@ -3,6 +3,7 @@ import gc
 
 from tqdm import tqdm
 import numpy as np
+import keras.backend as K
 
 from dataset import Dataset
 from models import get_model_f, OPTS, get_model, load_best_weights_max
@@ -23,14 +24,13 @@ def train(args):
     print('Train len:', n_train)
     print('Val len:', n_val)
 
-    best_gap = 0
-
-    for e in range(args.epochs):
-        print('Epoch: ', e)
-
+    best_gap = -1
+    best_epoch = -1
+    lr_change_epoch = -1
+    for epoch in range(args.epochs):
         train_generator = train.generator()
         data_iter = tqdm(enumerate(train_generator), total=int(np.ceil(n_train // args.batch_size)),
-                         desc="Epoch {}".format(e), ncols=0)
+                         desc="Epoch {}".format(epoch), ncols=0)
         for i, data in data_iter:
             X, y = data
             loss = model.train_on_batch({'audio': X['audio'], 'rgb': X['rgb']}, {'output': y})
@@ -38,7 +38,7 @@ def train(args):
 
         y_val = []
         y_pred = []
-        for data in tqdm(val.generator()):
+        for data in tqdm(val.generator(), total=int(np.ceil(n_val // args.batch_size))):
             X, y = data
             y_val.append(y)
             y_pred_batch = model.predict_on_batch({'audio': X['audio'], 'rgb': X['rgb']})
@@ -46,14 +46,24 @@ def train(args):
 
         y_val = np.concatenate(y_val)
         y_pred = np.concatenate(y_pred)
-        print(y_val.shape, y_pred.shape)
         cur_gap = gap(y_val, y_pred)
-        print('val GAP {:.5}; epoch: {}'.format(cur_gap, e))
+        print('val GAP {:.5}; epoch: {}'.format(cur_gap, epoch))
 
         if cur_gap > best_gap:
-            fname = fold_wdir + '/{:.6f}-{:03d}.h5'.format(cur_gap, e)
+            fname = fold_wdir + '/{:.6f}-{:03d}.h5'.format(cur_gap, epoch)
             best_gap = cur_gap
+            best_epoch = epoch
             model.save_weights(fname)
+
+        if abs(best_epoch - epoch) > args.patience and abs(lr_change_epoch - epoch) > args.patience:
+            lr = K.get_value(model.optimizer.lr)
+            K.set_value(model.optimizer.lr, lr * args.lr_reduce_rate)
+            print('Epoch {}. Set LR to {}'.format(epoch, lr * args.lr_reduce_rate))
+            lr_change_epoch = epoch
+
+        if abs(best_epoch - epoch) > args.early_stopping:
+            print('Epoch {}. Early stopping'.format(epoch))
+            break
 
 
 if __name__ == '__main__':
