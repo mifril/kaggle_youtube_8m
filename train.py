@@ -36,17 +36,13 @@ def train(args):
             loss = model.train_on_batch({'audio': X['audio'], 'rgb': X['rgb']}, {'output': y})
             data_iter.set_postfix(**{'loss': "{:.8f}".format(loss / (i + 1))})
 
-        y_val = []
-        y_pred = []
+        gaps = []
         for data in tqdm(val.generator(), total=int(np.ceil(n_val // args.batch_size))):
             X, y = data
-            y_val.append(y)
-            y_pred_batch = model.predict_on_batch({'audio': X['audio'], 'rgb': X['rgb']})
-            y_pred.append(y_pred_batch)
+            y_pred = model.predict_on_batch({'audio': X['audio'], 'rgb': X['rgb']})
+            gaps.append(gap(y, y_pred))
 
-        y_val = np.concatenate(y_val)
-        y_pred = np.concatenate(y_pred)
-        cur_gap = gap(y_val, y_pred)
+        cur_gap = np.mean(gaps)
         print('val GAP {:.5}; epoch: {}'.format(cur_gap, epoch))
 
         if cur_gap > best_gap:

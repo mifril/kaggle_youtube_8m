@@ -16,19 +16,20 @@ class Dataset:
 
         if self._mode == 'train':
             self._in_path = TRAIN_PATH
-            self._len = 3888919
+            # self._len = 4421199
         elif self._mode == 'val':
             self._in_path = VAL_PATH
-            self._len = 1112356
+            # self._len = 580076
         elif self._mode == 'test':
             self._in_path = TEST_PATH
-            self._ids = self._get_ids()
-            self._len = len(self._ids)
 
         if self._use_tf_records:
             self._files = sorted(glob.glob(os.path.join(self._in_path, '*.tfrecord')))
         else:
             self._files = sorted(glob.glob(os.path.join(self._in_path, '*.npz')))
+
+        self._ids = self._get_ids()
+        self._len = len(self._ids)
 
         print('Mode: {}. Total files: {}'.format(self._mode, len(self._files)))
 
