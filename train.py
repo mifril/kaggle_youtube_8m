@@ -32,13 +32,13 @@ def train(args):
         data_iter = tqdm(enumerate(train_generator), total=int(np.ceil(n_train // args.batch_size)),
                          desc="Epoch {}".format(epoch), ncols=0)
         for i, data in data_iter:
-            X, y = data
+            _, X, y = data
             loss = model.train_on_batch({'audio': X['audio'], 'rgb': X['rgb']}, {'output': y})
             data_iter.set_postfix(**{'loss': "{:.8f}".format(loss / (i + 1))})
 
         gaps = []
         for data in tqdm(val.generator(), total=int(np.ceil(n_val // args.batch_size))):
-            X, y = data
+            _, X, y = data
             y_pred = model.predict_on_batch({'audio': X['audio'], 'rgb': X['rgb']})
             gaps.append(gap(y, y_pred))
 
@@ -81,6 +81,8 @@ if __name__ == '__main__':
 
     args.model_name = 'dense4'
     args.use_tf_records = True
+
+    args.lr = 1e-4
 
     train(args)
     gc.collect()
