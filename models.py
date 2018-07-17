@@ -1,9 +1,10 @@
 import os
 import glob
 
+import keras.backend as K
 from keras.optimizers import Adam, RMSprop, SGD
 from keras.models import Model
-from keras.layers import Input, Dense, BatchNormalization, Dropout
+from keras.layers import Input, Dense, BatchNormalization, Dropout, Reshape, Lambda
 from keras.layers.merge import concatenate
 from keras.layers.advanced_activations import LeakyReLU
 
@@ -40,7 +41,7 @@ def fc_block(x, n=1024, d=0.2):
     return x
 
 
-def dense1(opt, dropout_val=0.3):
+def dense1(dropout_val=0.3):
     in_audio = Input((128,), name='audio')
     l_audio = fc_block(in_audio, 1024)
     l_audio = fc_block(l_audio, 2048)
@@ -58,7 +59,7 @@ def dense1(opt, dropout_val=0.3):
     return model
 
 
-def dense2(opt, dropout_val=0.3):
+def dense2(dropout_val=0.3):
     in_audio = Input((128,), name='audio')
     l_audio = fc_block(in_audio, 2048)
     l_audio = fc_block(l_audio, 2048)
@@ -76,7 +77,7 @@ def dense2(opt, dropout_val=0.3):
     return model
 
 
-def dense3(opt, dropout_val=0.3):
+def dense3(dropout_val=0.3):
     in_audio = Input((128,), name='audio')
     l_audio = fc_block(in_audio, 1024)
     l_audio = fc_block(l_audio, 2048)
@@ -94,7 +95,7 @@ def dense3(opt, dropout_val=0.3):
     return model
 
 
-def dense4(opt, dropout_val=0.3):
+def dense4(dropout_val=0.3):
     in_audio = Input((128,), name='audio')
     l_audio = fc_block(in_audio, 1024)
     l_audio = fc_block(l_audio, 2048)
@@ -109,17 +110,63 @@ def dense4(opt, dropout_val=0.3):
     l_merge = fc_block(l_merge, 4096)
     l_merge = fc_block(l_merge, 4096)
     out = Dense(N_CLASSES, activation='sigmoid', name='output')(l_merge)
+
+    model = Model(inputs=[in_audio, in_rgb], outputs=out)
+    return model
+
+
+def expert1(in_audio, in_rgb):
+    l_audio = fc_block(in_audio, 1024)
+    l_audio = fc_block(l_audio, 2048)
+
+    l_rgb = fc_block(in_rgb, 1024)
+    l_rgb = fc_block(l_rgb, 2048)
+
+    l_merge = concatenate([l_audio, l_rgb], axis=1)
+    l_merge = fc_block(l_merge, 2048)
+    l_merge = fc_block(l_merge, 4096)
+    return l_merge
+
+
+def gate1(in_audio, in_rgb):
+    return expert1(in_audio, in_rgb)
+
+
+def moe_out(input, n_mixtures=3):
+    gate_distribution = input[0]
+    expert_distribution = input[1]
+
+    # print(expert_distribution.shape, gate_distribution[..., :n_mixtures].shape)
+    return K.sum(gate_distribution[..., :n_mixtures] * expert_distribution, axis=2)
+
+
+def moe1(n_mixtures=3, dropout_val=0.3):
+    in_audio = Input((128,), name='audio')
+    in_rgb = Input((1024,), name='rgb')
+    expert = expert1(in_audio, in_rgb)
+    expert_distribution = Dense(N_CLASSES * n_mixtures, activation='softmax', name='expert_activations')(expert)
+    expert_distribution = Reshape((-1, n_mixtures))(expert_distribution)
+
+    gate = gate1(in_audio, in_rgb)
+    gate_distribution = Dense(N_CLASSES * (n_mixtures + 1), activation='sigmoid', name='gate_activations')(gate)
+    gate_distribution = Reshape((-1, n_mixtures + 1))(gate_distribution)
+
+    out = Lambda(moe_out, name='output')([gate_distribution, expert_distribution])
+    # out = K.sum(gate_distribution[:, :n_mixtures] * expert_distribution, 1)
+
+    # out = Reshape((-1, N_CLASSES))(out)
 
     model = Model(inputs=[in_audio, in_rgb], outputs=out)
     return model
 
 
 def get_model_f(model_name):
-    fmodels = {'dense1': dense1, 'dense2': dense2, 'dense3': dense3, 'dense4': dense4}
+    fmodels = {'dense1': dense1, 'dense2': dense2, 'dense3': dense3, 'dense4': dense4,
+               'moe1': moe1}
     return fmodels[model_name]
 
 
 def get_model(model_f, opt='adam'):
-    model = model_f(opt, dropout_val=0.3)
+    model = model_f(dropout_val=0.3)
     model.compile(optimizer=opt, loss='binary_crossentropy')
     return model
