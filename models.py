@@ -115,6 +115,41 @@ def dense4(dropout_val=0.3):
     return model
 
 
+def dense5(dropout_val=0.3):
+    in_audio = Input((128,), name='audio')
+    l_audio = fc_block(in_audio, 1024)
+
+    in_rgb = Input((1024,), name='rgb')
+    l_rgb = fc_block(in_rgb, 2048)
+    l_rgb = fc_block(l_rgb, 4096)
+
+    l_merge = concatenate([l_audio, l_rgb], axis=1)
+    l_merge = fc_block(l_merge, 4096 * 2)
+    l_merge = fc_block(l_merge, 2048)
+    out = Dense(N_CLASSES, activation='sigmoid', name='output')(l_merge)
+
+    model = Model(inputs=[in_audio, in_rgb], outputs=out)
+    return model
+
+
+def dense6(dropout_val=0.3):
+    in_audio = Input((128,), name='audio')
+    l_audio = fc_block(in_audio, 512)
+    l_audio = fc_block(in_audio, 1024)
+
+    in_rgb = Input((1024,), name='rgb')
+    l_rgb = fc_block(in_rgb, 2048)
+    l_rgb = fc_block(l_rgb, 4096)
+
+    l_merge = concatenate([l_audio, l_rgb], axis=1)
+    l_merge = fc_block(l_merge, 4096 * 2)
+    l_merge = fc_block(l_merge, 2048)
+    out = Dense(N_CLASSES, activation='sigmoid', name='output')(l_merge)
+
+    model = Model(inputs=[in_audio, in_rgb], outputs=out)
+    return model
+
+
 def expert1(in_audio, in_rgb):
     l_audio = fc_block(in_audio, 1024)
     l_audio = fc_block(l_audio, 2048)
@@ -194,7 +229,7 @@ def moe2(n_mixtures=3, dropout_val=0.3):
 
 
 def get_model_f(model_name):
-    fmodels = {'dense1': dense1, 'dense2': dense2, 'dense3': dense3, 'dense4': dense4,
+    fmodels = {'dense1': dense1, 'dense2': dense2, 'dense3': dense3, 'dense4': dense4, 'dense5': dense5, 'dense6': dense6,
                'moe1': moe1, 'moe2': moe2}
     return fmodels[model_name]
 
