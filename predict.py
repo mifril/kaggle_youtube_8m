@@ -32,7 +32,7 @@ def predict(args):
     n_test = len(test)
     print('Test len:', n_test)
 
-    out_path = os.path.join(OUTPUT_PATH, args.out_file)
+    out_path = os.path.join(OUTPUT_PATH, args.out_file + '.csv')
 
     batch_count = 0
     with open(out_path, "w+") as f:
