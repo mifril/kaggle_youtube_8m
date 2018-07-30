@@ -95,7 +95,7 @@ def dense3(dropout_val=0.3):
     return model
 
 
-def dense4(dropout_val=0.3):
+def dense4_2in(dropout_val=0.3):
     in_audio = Input((128,), name='audio')
     l_audio = fc_block(in_audio, 1024)
     l_audio = fc_block(l_audio, 2048)
@@ -112,6 +112,36 @@ def dense4(dropout_val=0.3):
     out = Dense(N_CLASSES, activation='sigmoid', name='output')(l_merge)
 
     model = Model(inputs=[in_audio, in_rgb], outputs=out)
+    return model
+
+def dense4(dropout_val=0.3):
+    in_all = Input((1024 + 128,), name='input_batch_raw')
+
+    def slice_audio(x):
+        return x[:, 1024:]
+    in_audio = Lambda(slice_audio)(in_all)
+    def slice_rgb(x):
+        return x[:, :1024]
+    in_rgb = Lambda(slice_rgb)(in_all)
+
+    print(in_all)
+    print(in_audio)
+    print(in_rgb)
+
+    l_audio = fc_block(in_audio, 1024)
+    l_audio = fc_block(l_audio, 2048)
+    l_audio = fc_block(l_audio, 2048)
+    l_audio = fc_block(l_audio, 2048)
+
+    l_rgb = fc_block(in_rgb, 2048)
+    l_rgb = fc_block(l_rgb, 4096)
+
+    l_merge = concatenate([l_audio, l_rgb], axis=1)
+    l_merge = fc_block(l_merge, 4096)
+    l_merge = fc_block(l_merge, 4096)
+    out = Dense(N_CLASSES, activation='sigmoid', name='output')(l_merge)
+
+    model = Model(inputs=[in_all], outputs=out)
     return model
 
 

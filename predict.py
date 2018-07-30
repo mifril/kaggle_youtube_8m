@@ -46,7 +46,10 @@ def predict(args):
                                 for model in models]
                 preds = np.average(models_preds, weights=alphas, axis=0)
             else:
-                preds = model.predict({'audio': X['audio'], 'rgb': X['rgb']}, verbose=0, batch_size=args.batch_size)
+                # preds = model.predict({'audio': X['audio'], 'rgb': X['rgb']}, verbose=0, batch_size=args.batch_size)
+                X_all = np.concatenate((X['rgb'], X['audio']), axis=1)
+                # print(X['rgb'].shape, X['audio'].shape, X_all.shape)
+                preds = model.predict({'input_batch_raw': X_all}, verbose=0, batch_size=args.batch_size)
             assert preds.shape[0] == len(idx)
 
             out = process_preds(idx, preds)
@@ -71,6 +74,7 @@ if __name__ == '__main__':
 
     args.model_name = 'dense4'
     args.use_tf_records = True
+    args.out_file = 'dense4_wrap'
 
     predict(args)
     gc.collect()
