@@ -1,1 +1,1 @@
-My solution for [Kaggle: Youtube-8M competition](https://www.kaggle.com/c/youtube8m) (32d place)
+My solutions for [Kaggle: Youtube-8M competition](https://www.kaggle.com/c/youtube8m) (32d place) and [The 2nd YouTube-8M Video Understanding Challenge](https://www.kaggle.com/c/youtube8m-2018) (39th place)
